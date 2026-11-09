@@ -1,0 +1,153 @@
+{
+  "entities": {
+    "Menu": {
+      "title": "MenuItem",
+      "description": "Menu item entity with category, pricing, station, and modifiers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "nameTh": { "type": "string", "maxLength": 128 },
+        "nameEn": { "type": "string", "maxLength": 128 },
+        "price": { "type": "number" },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "station": { "type": "string", "enum": ["kitchen", "bar"] },
+        "emoji": { "type": "string", "maxLength": 16 },
+        "available": { "type": "boolean" },
+        "modifierGroupIds": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "nameTh", "price", "categoryId", "station", "available"]
+    },
+    "Ingredient": {
+      "title": "Ingredient",
+      "description": "Restaurant raw material or ingredient definition",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128 },
+        "unit": { "type": "string", "maxLength": 32 },
+        "costPerUnit": { "type": "number" },
+        "currentStock": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "unit"]
+    },
+    "Stock": {
+      "title": "StockItem",
+      "description": "Inventory stock record with thresholds and tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128 },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 32 },
+        "minThreshold": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "quantity", "unit"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Store operational expense record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 128 },
+        "amount": { "type": "number" },
+        "category": { "type": "string", "maxLength": 64 },
+        "note": { "type": "string", "maxLength": 256 },
+        "date": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "amount", "category"]
+    },
+    "Sale": {
+      "title": "SaleOrder",
+      "description": "Completed or active dine-in / takeaway sales order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "queueNumber": { "type": "string", "maxLength": 32 },
+        "type": { "type": "string", "enum": ["dine-in", "takeaway"] },
+        "tableId": { "type": "string", "maxLength": 64 },
+        "tableName": { "type": "string", "maxLength": 64 },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "object" },
+        "serviceCharge": { "type": "number" },
+        "vat": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["open", "paid", "void"] },
+        "items": { "type": "array" },
+        "payments": { "type": "array" },
+        "openedBy": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "type", "subtotal", "total", "status"]
+    },
+    "Shift": {
+      "title": "Shift",
+      "description": "Cashier drawer shift session record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "openingCash": { "type": "number" },
+        "closingCash": { "type": "number" },
+        "expectedCash": { "type": "number" },
+        "difference": { "type": "number" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "openedBy": { "type": "string", "maxLength": 64 },
+        "cashMovements": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "openingCash", "status", "openedBy"]
+    },
+    "Setting": {
+      "title": "UserSetting",
+      "description": "Store configuration, table floor layout, and categories document",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "data": { "type": "object" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}/menus/{itemId}": {
+      "schema": "Menu",
+      "description": "User-specific menu items collection"
+    },
+    "/users/{uid}/ingredients/{ingredientId}": {
+      "schema": "Ingredient",
+      "description": "User-specific ingredients collection"
+    },
+    "/users/{uid}/stock/{stockId}": {
+      "schema": "Stock",
+      "description": "User-specific inventory stock items collection"
+    },
+    "/users/{uid}/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "User-specific store expenses records collection"
+    },
+    "/users/{uid}/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "User-specific sales orders records collection"
+    },
+    "/users/{uid}/shifts/{shiftId}": {
+      "schema": "Shift",
+      "description": "User-specific register shift sessions collection"
+    },
+    "/users/{uid}/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "User-specific store and tables configuration documents"
+    }
+  }
+}

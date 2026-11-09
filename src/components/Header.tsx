@@ -13,6 +13,11 @@ import {
   Moon,
   Globe,
   User,
+  LogIn,
+  LogOut,
+  Cloud,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 import { usePos } from '../context/PosContext';
 import { translations } from '../i18n/translations';
@@ -45,6 +50,13 @@ export const Header: React.FC<HeaderProps> = ({
     setCurrentRole,
     orders,
     currentShift,
+    currentUser,
+    authLoading,
+    signInWithGoogle,
+    signOutUser,
+    firestoreLoading,
+    firestoreError,
+    clearFirestoreError,
   } = usePos();
 
   const t = translations[language];
@@ -191,6 +203,69 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
+          {/* Firebase Authentication & Cloud Sync */}
+          {currentUser ? (
+            <div className="flex items-center gap-1.5 bg-slate-800/90 rounded-xl border border-slate-700/80 px-2 py-1 shadow-xs">
+              {currentUser.photoURL ? (
+                <img
+                  src={currentUser.photoURL}
+                  alt={currentUser.displayName || 'User'}
+                  className="w-5 h-5 rounded-full border border-amber-400"
+                />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-amber-500 text-slate-900 font-black text-[10px] flex items-center justify-center">
+                  {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                </div>
+              )}
+              <div className="hidden xl:block text-left leading-tight">
+                <p className="text-[11px] font-bold text-white max-w-[100px] truncate">
+                  {currentUser.displayName || currentUser.email?.split('@')[0]}
+                </p>
+                <span className="text-[9px] text-emerald-400 flex items-center gap-0.5">
+                  <Cloud className="w-2.5 h-2.5" />
+                  <span>Cloud Sync</span>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={signOutUser}
+                title="ออกจากระบบ / Sign Out"
+                className="text-slate-400 hover:text-rose-400 p-0.5 rounded transition"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={authLoading}
+              onClick={signInWithGoogle}
+              className="btn-3d-amber flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-black text-white cursor-pointer"
+              title="เข้าสู่ระบบด้วย Google เพื่อซิงค์ข้อมูล Cloud Firestore"
+            >
+              {authLoading ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <LogIn className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden sm:inline">Google Login</span>
+            </button>
+          )}
+
+          {/* Cloud Sync Status Icon */}
+          {currentUser && (
+            <div
+              className={`p-1.5 rounded-xl border ${
+                firestoreLoading
+                  ? 'bg-amber-950/40 border-amber-500/50 text-amber-400'
+                  : 'bg-emerald-950/40 border-emerald-500/50 text-emerald-400'
+              }`}
+              title={firestoreLoading ? 'กำลังซิงค์ข้อมูล Cloud Firestore...' : 'Cloud Firestore เชื่อมต่อแบบเรียลไทม์'}
+            >
+              <Cloud className={`w-3.5 h-3.5 ${firestoreLoading ? 'animate-pulse' : ''}`} />
+            </div>
+          )}
+
           {/* Quick Role Switcher (for demo/tablet test) */}
           <div className="flex items-center bg-slate-800/90 rounded-xl border border-slate-700 px-1.5 py-0.5 shadow-xs">
             <User className="w-3.5 h-3.5 text-slate-400 ml-1 mr-1" />
@@ -239,6 +314,22 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Firestore Error Alert Banner */}
+      {firestoreError && (
+        <div className="bg-rose-900/90 text-white text-xs px-4 py-2 flex items-center justify-between border-t border-rose-800">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-300" />
+            <span>{firestoreError}</span>
+          </div>
+          <button
+            onClick={clearFirestoreError}
+            className="text-rose-200 hover:text-white underline text-[11px] font-bold"
+          >
+            ปิด
+          </button>
+        </div>
+      )}
     </header>
   );
 };

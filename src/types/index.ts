@@ -221,3 +221,34 @@ export interface UserMember {
   email: string;
   role: Role;
 }
+
+export interface Ingredient {
+  id: string;
+  name: string;
+  unit: string;
+  costPerUnit: number;
+  currentStock: number;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface StockItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  minThreshold: number;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface Expense {
+  id: string;
+  title: string;
+  amount: number;
+  category: string;
+  note?: string;
+  date: string;
+  createdAt?: any;
+  updatedAt?: any;
+}

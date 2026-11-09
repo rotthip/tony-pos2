@@ -2,83 +2,37 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Global Safety Net: Default-deny all incoming requests
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Health check / connection test doc
+    match /test/{docId} {
+      allow read: if true;
+    }
+
     // Helper functions
-    function isAuthenticated() {
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    function isMember(shopId) {
-      return isAuthenticated() && exists(/databases/$(database)/documents/shops/$(shopId)/members/$(request.auth.uid));
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
     }
 
-    function getMemberRole(shopId) {
-      return get(/databases/$(database)/documents/shops/$(shopId)/members/$(request.auth.uid)).data.role;
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    function isOwner(shopId) {
-      return isAuthenticated() && (
-        getMemberRole(shopId) == 'owner' ||
-        get(/databases/$(database)/documents/shops/$(shopId)).data.ownerUid == request.auth.uid
-      );
-    }
+    // Strict User-Isolation Fortress
+    // Only the authenticated user can access any subcollections under their own users/{uid}/**
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
 
-    function isManagerOrOwner(shopId) {
-      return isAuthenticated() && (
-        getMemberRole(shopId) in ['owner', 'manager'] ||
-        get(/databases/$(database)/documents/shops/$(shopId)).data.ownerUid == request.auth.uid
-      );
-    }
-
-    function isCashierOrAbove(shopId) {
-      return isAuthenticated() && (
-        getMemberRole(shopId) in ['owner', 'manager', 'cashier'] ||
-        get(/databases/$(database)/documents/shops/$(shopId)).data.ownerUid == request.auth.uid
-      );
-    }
-
-    // Shops collection
-    match /shops/{shopId} {
-      allow read: if isMember(shopId);
-      allow create: if isAuthenticated() && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if isOwner(shopId);
-
-      // Members subcollection
-      match /members/{memberUid} {
-        allow read: if isMember(shopId);
-        allow create: if isAuthenticated() && (
-          // Initial owner bootstrap when creating shop
-          (request.auth.uid == memberUid && request.resource.data.role == 'owner') ||
-          isManagerOrOwner(shopId)
-        );
-        allow update, delete: if isOwner(shopId);
-      }
-
-      // Configuration (menu, tables, print settings)
-      match /config/{configDoc} {
-        allow read: if isMember(shopId);
-        allow write: if isManagerOrOwner(shopId);
-      }
-
-      // Orders subcollection
-      match /orders/{orderId} {
-        allow read: if isMember(shopId);
-        allow create: if isCashierOrAbove(shopId);
-        allow update: if isMember(shopId); // Cashier/Manager can modify orders; Kitchen can update item statuses (cooking, ready, served)
-        allow delete: if isManagerOrOwner(shopId);
-      }
-
-      // Shifts subcollection
-      match /shifts/{shiftId} {
-        allow read: if isMember(shopId);
-        allow create, update: if isCashierOrAbove(shopId);
-        allow delete: if isManagerOrOwner(shopId);
-      }
-
-      // Daily running summaries for reports
-      match /daily/{dateDoc} {
-        allow read: if isCashierOrAbove(shopId);
-        allow create, update: if isCashierOrAbove(shopId);
-        allow delete: if isOwner(shopId);
+      // Recursive match for all subcollections under users/{uid}
+      match /{allSubcollections=**} {
+        allow read, write: if isOwner(uid);
       }
     }
   }

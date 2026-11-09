@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   X,
   Store,
@@ -9,6 +9,13 @@ import {
   RotateCcw,
   Check,
   Percent,
+  Download,
+  Upload,
+  Cloud,
+  LogIn,
+  LogOut,
+  FileJson,
+  Sparkles,
 } from 'lucide-react';
 import { usePos } from '../context/PosContext';
 import { translations } from '../i18n/translations';
@@ -30,6 +37,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     firebaseConfig,
     saveFirebaseSettings,
     language,
+    currentUser,
+    signInWithGoogle,
+    signOutUser,
+    exportDataJson,
+    importDataJson,
+    seedCloudData,
   } = usePos();
 
   const t = translations[language];
@@ -61,8 +74,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [fbAppId, setFbAppId] = useState(firebaseConfig.appId || '');
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
 
   if (!isOpen) return null;
+
+  const handleExport = async () => {
+    try {
+      const data = await exportDataJson();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sabaipos-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert('เกิดข้อผิดพลาดในการส่งออกข้อมูล: ' + err.message);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportMsg('กำลังประมวลผลไฟล์...');
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const count = await importDataJson(parsed);
+      setImportMsg(`นำเข้าข้อมูลสำเร็จ ${count} รายการ!`);
+      setTimeout(() => setImportMsg(''), 4000);
+    } catch (err: any) {
+      setImportMsg('เกิดข้อผิดพลาด: ' + (err.message || 'ไฟล์ JSON ไม่ถูกต้อง'));
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleSave = async () => {
     updateShopConfig({
@@ -328,55 +379,140 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
           </div>
 
-          {/* 6. Firebase & Deployment config */}
-          <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border">
-            <div className="flex items-center justify-between">
-              <h4 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                <Database className="w-4 h-4 text-emerald-500" />
-                <span>{t.firebaseConfigSection} (Spark Free Plan 100%)</span>
+          {/* 6. Cloud Firestore & Data Persistence */}
+          <div className="space-y-3.5 p-4 sm:p-5 rounded-3xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <h4 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Cloud className="w-5 h-5 text-amber-500" />
+                <span>Cloud Firestore & ระบบซิงค์ข้อมูลเรียลไทม์</span>
               </h4>
 
-              <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-amber-600 dark:text-amber-400">
-                <input
-                  type="checkbox"
-                  checked={demoActive}
-                  onChange={(e) => setDemoActive(e.target.checked)}
-                  className="rounded-sm"
-                />
-                <span>{t.useDemoMode}</span>
-              </label>
+              <div className="flex items-center gap-2">
+                {currentUser ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                    เชื่อมต่อคลาวด์แล้ว
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    ออฟไลน์ / โหมดสาธิต
+                  </span>
+                )}
+              </div>
             </div>
 
-            <p className="text-[11px] text-slate-500">
-              รองรับ Offline Persistence 100% ด้วย multi-tab cache และคำนวณสรุปด้วย Daily Summary doc จึงไม่กินโควตา Free Plan
-            </p>
-
-            {!demoActive && (
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300">
-                    {t.firebaseApiKey}
-                  </label>
-                  <input
-                    type="text"
-                    value={fbApiKey}
-                    onChange={(e) => setFbApiKey(e.target.value)}
-                    className="mt-1 w-full px-2.5 py-1.5 rounded-lg border bg-white dark:bg-slate-900 font-mono text-[11px]"
+            {/* Google Authentication Box */}
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                {currentUser?.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName || 'User'}
+                    className="w-10 h-10 rounded-full border-2 border-amber-400"
                   />
-                </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 font-black flex items-center justify-center text-sm">
+                    <LogIn className="w-5 h-5" />
+                  </div>
+                )}
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300">
-                    {t.firebaseProjectId}
-                  </label>
-                  <input
-                    type="text"
-                    value={fbProjectId}
-                    onChange={(e) => setFbProjectId(e.target.value)}
-                    className="mt-1 w-full px-2.5 py-1.5 rounded-lg border bg-white dark:bg-slate-900 font-mono text-[11px]"
-                  />
+                  <p className="font-extrabold text-xs text-slate-900 dark:text-white">
+                    {currentUser
+                      ? currentUser.displayName || currentUser.email
+                      : 'ยังไม่ได้เข้าสู่ระบบ Google'}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    {currentUser
+                      ? `UID: ${currentUser.uid.slice(0, 16)}... • ซิงค์แบบแยกสิทธิ์เฉพาะผู้ใช้`
+                      : 'เข้าสู่ระบบเพื่อจัดเก็บข้อมูลบน Cloud Firestore และเปิดการใช้งานหลายอุปกรณ์'}
+                  </p>
                 </div>
               </div>
-            )}
+
+              {currentUser ? (
+                <button
+                  type="button"
+                  onClick={signOutUser}
+                  className="px-3.5 py-2 rounded-xl btn-3d-slate text-xs font-bold text-rose-500 flex items-center justify-center gap-1.5"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>ออกจากระบบ</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={signInWithGoogle}
+                  className="px-4 py-2.5 rounded-xl btn-3d-amber text-xs font-extrabold text-white flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>เข้าสู่ระบบด้วย Google</span>
+                </button>
+              )}
+            </div>
+
+            {/* Migration & Security Note */}
+            <div className="p-3 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-[11px] text-amber-900 dark:text-amber-300 leading-relaxed space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5" />
+                <span>โครงสร้าง Cloud Firestore (Data Persistence):</span>
+              </p>
+              <p className="text-slate-600 dark:text-slate-400">
+                ข้อมูลทั้งหมดจัดเก็บภายใต้ path <code className="bg-amber-200/50 dark:bg-amber-900/40 px-1 rounded font-mono">users/&#123;uid&#125;/</code> ในคอลเลกชัน <span className="font-semibold text-slate-800 dark:text-slate-200">menus, ingredients, stock, expenses, sales, shifts</span> และเอกสารทุกฉบับมี <code className="font-mono">id, createdAt, updatedAt</code> จากเซิร์ฟเวอร์ พร้อม Security Rules ป้องกันการเข้าถึงข้ามบัญชี 100%
+              </p>
+            </div>
+
+            {/* Import / Export JSON buttons */}
+            <div className="space-y-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  className="px-3.5 py-2 rounded-xl btn-3d-slate text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5 text-amber-500" />
+                  <span>ส่งออกข้อมูล (Export JSON)</span>
+                </button>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".json,application/json"
+                  className="hidden"
+                />
+
+                <button
+                  type="button"
+                  disabled={importing}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3.5 py-2 rounded-xl btn-3d-slate text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Upload className="w-3.5 h-3.5 text-blue-500" />
+                  <span>{importing ? 'กำลังนำเข้า...' : 'นำเข้าข้อมูล (Import JSON)'}</span>
+                </button>
+
+                {currentUser && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (confirm('ต้องการซิงค์ข้อมูลตัวอย่างเมนูอาหารไทยขึ้น Cloud Firestore ของคุณหรือไม่?')) {
+                        await seedCloudData();
+                        alert('ซิงค์ข้อมูลขึ้น Cloud เรียบร้อยแล้ว!');
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-xl btn-3d-slate text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>ซิงค์ข้อมูลเริ่มต้นขึ้น Cloud</span>
+                  </button>
+                )}
+              </div>
+
+              {importMsg && (
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                  {importMsg}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* 7. Reset sample data */}
