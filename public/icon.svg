@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="128" fill="#0f172a"/>
+  <circle cx="256" cy="256" r="210" fill="#1e293b"/>
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+  </defs>
+  <!-- POS Register & Thai Spoon Fork Symbol -->
+  <rect x="120" y="210" width="272" height="190" rx="24" fill="url(#grad)"/>
+  <rect x="150" y="240" width="212" height="70" rx="12" fill="#ffffff" opacity="0.95"/>
+  <!-- Screen Text / Receipt lines -->
+  <line x1="170" y1="265" x2="290" y2="265" stroke="#0f172a" stroke-width="8" stroke-linecap="round"/>
+  <line x1="170" y1="285" x2="250" y2="285" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
+  <!-- Keypad dots -->
+  <circle cx="170" cy="350" r="12" fill="#ffffff"/>
+  <circle cx="215" cy="350" r="12" fill="#ffffff"/>
+  <circle cx="260" cy="350" r="12" fill="#ffffff"/>
+  <circle cx="305" cy="350" r="12" fill="#ffffff"/>
+  <circle cx="350" cy="350" r="12" fill="#ffffff"/>
+  <!-- Coffee cup / dish top glyph -->
+  <path d="M 210 170 C 210 130, 302 130, 302 170 Z" fill="#f59e0b"/>
+  <path d="M 230 115 Q 235 95 240 125" stroke="#fbbf24" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <path d="M 255 110 Q 260 85 265 120" stroke="#fbbf24" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <path d="M 280 115 Q 285 95 290 125" stroke="#fbbf24" stroke-width="6" stroke-linecap="round" fill="none"/>
+</svg>

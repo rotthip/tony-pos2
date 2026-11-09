@@ -1,0 +1,6 @@
+{
+  "name": "SabaiPOS - Thai Restaurant & Cafe POS",
+  "description": "ระบบขายหน้าร้านสำหรับร้านอาหารและคาเฟ่ (Thai Restaurant & Cafe POS) รองรับการทำงานออฟไลน์ สแกนพร้อมเพย์ จัดการโต๊ะ KDS และตัดกะ",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
